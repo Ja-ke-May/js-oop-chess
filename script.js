@@ -582,21 +582,26 @@ function switchPlayer() {
     if (currentPlayer === 'white') {
         whiteToMove.classList.remove('hidden');
         blackToMove.classList.add('hidden');
+        whitePointsElement.style.display = "block"
+        blackPointsElement.style.display = "block"
     } else {
         whiteToMove.classList.add('hidden');
         blackToMove.classList.remove('hidden');
+        whitePointsElement.style.display = "block"
+        blackPointsElement.style.display = "block"
     }
 
     console.log('Switched to', currentPlayer, 'player');
 }
 
+
+const whitePointsElement = document.getElementById('whitePoints');
+const blackPointsElement = document.getElementById('blackPoints');
+
 let whiteScore = 0;
 let blackScore = 0;
 
 function updatePoints() {
-
-    const whitePointsElement = document.getElementById('whitePoints');
-const blackPointsElement = document.getElementById('blackPoints');
     
     whitePointsElement.textContent = `White has ${whiteScore} points`;
     blackPointsElement.textContent = `Black has ${blackScore} points`;
