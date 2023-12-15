@@ -569,6 +569,10 @@ function getSquareElement(coordinates) {
 let currentPlayer = 'white'; 
 let opponent = 'black';
 
+const whitePointsElement = document.getElementById('whitePoints');
+const blackPointsElement = document.getElementById('blackPoints');
+
+
 // Switch player
 function switchPlayer() {
     currentPlayer = currentPlayer === 'white' ? 'black' : 'white';
@@ -581,9 +585,13 @@ function switchPlayer() {
     if (currentPlayer === 'white') {
         whiteToMove.classList.remove('hidden');
         blackToMove.classList.add('hidden');
+        whitePointsElement.style.display = "block";
+        blackPointsElement.style.display = "none";
     } else {
         whiteToMove.classList.add('hidden');
         blackToMove.classList.remove('hidden');
+        blackPointsElement.style.display = "block";
+        whitePointsElement.style.display = "none";
     }
 
     console.log('Switched to', currentPlayer, 'player');
@@ -593,9 +601,7 @@ let whiteScore = 0;
 let blackScore = 0;
 
 function updatePoints() {
-    const whitePointsElement = document.getElementById('whitePoints');
-    const blackPointsElement = document.getElementById('blackPoints');
-
+    
     whitePointsElement.textContent = `White has ${whiteScore} points`;
     blackPointsElement.textContent = `Black has ${blackScore} points`;
 }
