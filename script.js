@@ -430,57 +430,72 @@ function updateChessboard() {
         
 let selectedPiece = null;
                  
+
 function handleSquareClick(event) {
-            console.log('handleSquareClick function called');
-            const squareElement = event.target;
-            const col = parseInt(squareElement.getAttribute('data-col'));
-            const row = parseInt(squareElement.parentElement.getAttribute('data-row'));
-        
-            const piece = findPieceAtPosition({ x: col, y: row });
-        
-            console.log('Selected Piece:', piece);
-        
-            if (selectedPiece) {
-                // If a piece is already selected
-                console.log('Previously Selected Piece:', selectedPiece);
-        
-                if (piece && piece.color === selectedPiece.color) {
-                    // Clicked on another piece of same color
-                    selectedPiece.removeHighlights();
-                    selectedPiece = piece;
-                    selectedPiece.highlightLegalMoves();
-                } else if (selectedPiece.isLegalMove({ x: col, y: row }, selectedPiece.position)) {
-                    // Clicked on a legal move
-                    console.log('Legal Move Selected');
-                    movePiece(selectedPiece, { x: col, y: row }); // Pass the targetSquare
-                    selectedPiece = null;
-                } else {
-                    // Clicked on an invalid square
-                    console.log('Invalid Move Selected');
-                    selectedPiece.removeHighlights();
-                    selectedPiece = null;
-                }
-            } else {
-                // If no piece is selected
-                if (piece && piece.color === currentPlayer) {
-                    // Clicked on a piece of current player's color
-                    console.log('Piece of Current Player Selected');
-                    selectedPiece = piece;
-                    selectedPiece.highlightLegalMoves();
-                } else {
-                    // Clicked on an empty or opponent's square
-                    console.log('Empty or Opponent\'s Square Selected');
-                    selectedPiece = null;
-                }
+    console.log('handleSquareClick function called');
+    const squareElement = event.target;
+    const col = parseInt(squareElement.getAttribute('data-col'));
+    const row = parseInt(squareElement.parentElement.getAttribute('data-row'));
+
+    const piece = findPieceAtPosition({ x: col, y: row });
+
+    console.log('Selected Piece:', piece);
+
+    if (selectedPiece) {
+        // If a piece is already selected
+        console.log('Previously Selected Piece:', selectedPiece);
+
+        if (piece && piece.color === selectedPiece.color) {
+            // Clicked on another piece of the same color
+            selectedPiece.removeHighlights();
+            selectedPiece = piece;
+            selectedPiece.highlightLegalMoves();
+        } else if (selectedPiece.isLegalMove({ x: col, y: row }, selectedPiece.position)) {
+            // Clicked on a legal move
+            console.log('Legal Move Selected');
+            
+            if (!isMoveAllowed(selectedPiece, { x: col, y: row })) {
+                // Check if the move is allowed based on check condition
+                console.log('Invalid Move Selected in Check');
+                selectedPiece.removeHighlights();
+                selectedPiece = null;
+                return;
             }
-        
-            // Log statements to check highlighted squares
-            const highlightedSquares = document.querySelectorAll('.highlighted-square');
-            console.log('Highlighted Squares:', highlightedSquares);
-            highlightedSquares.forEach(square => {
-                console.log('Highlighted Square Coordinates:', square.getAttribute('data-col'), square.parentElement.getAttribute('data-row'));
-            });
+            
+            movePiece(selectedPiece, { x: col, y: row }); // Pass the targetSquare
+            selectedPiece = null;
+
+            // After the move is made
+            if (isKingInCheck(getCurrentPlayerKing(), opponent === 'white' ? whitePieces : blackPieces)) {
+                alert('Check!'); // Alert if the current player's king is in check
+            }
+        } else {
+            // Clicked on an invalid square
+            console.log('Invalid Move Selected');
+            selectedPiece.removeHighlights();
+            selectedPiece = null;
         }
+    } else {
+        // If no piece is selected
+        if (piece && piece.color === currentPlayer) {
+            // Clicked on a piece of the current player's color
+            console.log('Piece of Current Player Selected');
+            selectedPiece = piece;
+            selectedPiece.highlightLegalMoves();
+        } else {
+            // Clicked on an empty or opponent's square
+            console.log('Empty or Opponent\'s Square Selected');
+            selectedPiece = null;
+        }
+    }
+
+    // Log statements to check highlighted squares
+    const highlightedSquares = document.querySelectorAll('.highlighted-square');
+    console.log('Highlighted Squares:', highlightedSquares);
+    highlightedSquares.forEach(square => {
+        console.log('Highlighted Square Coordinates:', square.getAttribute('data-col'), square.parentElement.getAttribute('data-row'));
+    });
+}
      
 // Move piece 
 function movePiece(piece, targetSquare) {
@@ -550,6 +565,12 @@ function movePiece(piece, targetSquare) {
 
                 updatePoints();
                 updateChessboard();
+
+                // Check for check and checkmate before switching players
+        if (isKingInCheck(getCurrentPlayerKing(), opponent === 'white' ? whitePieces : blackPieces)) {
+            alert('Check!'); // Alert if the current player's king is in check
+        }
+
                 switchPlayer();
             }
         }                
@@ -623,6 +644,67 @@ document.getElementById('playButton').addEventListener('click', function () {
     createChessboard();
 });
 
+// Check and checkmate functions 
+
+// Function to check if king in check
+function isKingInCheck(king, opponentPieces) {
+    const kingPosition = king.position;
+
+    // Check each opponent piece's legal moves
+    for (const piece of opponentPieces) {
+        const legalMoves = piece.getLegalMoves();
+        if (legalMoves.some(move => move.x === kingPosition.x && move.y === kingPosition.y)) {
+            return true; // King is in check
+        }
+    }
+
+    return false; // King is not in check
+}
+
+function isMovePuttingKingInCheck(piece, targetSquare, opponentPieces) {
+    const originalPosition = piece.position;
+
+    // Temporarily move the piece to the target square
+    piece.movePieceTo(targetSquare);
+
+    // Check if the king is in check after the move
+    const isCheck = isKingInCheck(getCurrentPlayerKing(), opponentPieces);
+
+    // Move the piece back to its original position
+    piece.movePieceTo(originalPosition);
+
+    return !isCheck; // If the move puts the king out of check, it's a valid move
+}
 
 
+// Function to get the current player's king
+function getCurrentPlayerKing() {
+    const currentPlayerPieces = currentPlayer === 'white' ? whitePieces : blackPieces;
+    return currentPlayerPieces.find(piece => piece instanceof King);
+}
 
+function isMoveAllowed(piece, targetSquare) {
+    const currentPlayerKing = getCurrentPlayerKing();
+    const opponentPieces = opponent === 'white' ? whitePieces : blackPieces;
+
+    // Check if the move is allowed based on check condition
+    if (isKingInCheck(currentPlayerKing, opponentPieces)) {
+        if (piece === currentPlayerKing) {
+            // Allow the king to move only if the move puts it out of check
+            if (!isMovePuttingKingInCheck(piece, targetSquare, opponentPieces)) {
+                // Check if the move exposes the king to check from another piece
+                const isExposedToCheck = opponentPieces.some(opponentPiece => {
+                    const legalMoves = opponentPiece.getLegalMoves();
+                    return legalMoves.some(move => move.x === targetSquare.x && move.y === targetSquare.y);
+                });
+
+                return !isExposedToCheck;
+            }
+        } else {
+            // Allow other pieces only if they are defending the king
+            return isDefendingPiece(piece, targetSquare);
+        }
+    }
+
+    return true;
+}
