@@ -327,37 +327,6 @@ class King extends ChessPiece {
 
         return legalMoves;
     }
-
-    isMoveValid(targetSquare, currentPosition) {
-        // Check if the target square is a valid square
-        if (!this.isValidSquare(targetSquare)) {
-            return false;
-        }
-
-        // Check if the move is within the king's range
-        const deltaX = Math.abs(targetSquare.x - currentPosition.x);
-        const deltaY = Math.abs(targetSquare.y - currentPosition.y);
-        if (deltaX > 1 || deltaY > 1) {
-            return false;
-        }
-
-        // Check if the target square is not occupied by a piece of the same color
-        const pieceAtTarget = findPieceAtPosition(targetSquare);
-        if (pieceAtTarget && pieceAtTarget.color === this.color) {
-            return false;
-        }
-
-        // Check if the target square is attacked by an opponent's piece
-        const opponentPieces = opponent === 'white' ? whitePieces : blackPieces;
-        for (const opponentPiece of opponentPieces) {
-            const legalMoves = opponentPiece.getLegalMoves(currentPosition);
-            if (legalMoves.some(move => move.x === targetSquare.x && move.y === targetSquare.y)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
 }
 
 
@@ -594,12 +563,6 @@ function movePiece(piece, targetSquare) {
 
             updatePoints();
             updateChessboard();
-
-            // Check for check and checkmate before switching players
-    if (isKingInCheck(getCurrentPlayerKing(), opponent === 'white' ? whitePieces : blackPieces)) {
-        alert('Check!'); // Alert if the current player's king is in check
-    }
-
             switchPlayer();
         }
     }                
