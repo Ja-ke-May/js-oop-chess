@@ -46,12 +46,15 @@ class ChessPiece {
     highlightLegalMoves() {
         const legalMoves = this.getLegalMoves();
         legalMoves.forEach(move => {
-            const squareElement = getSquareElement(move); 
-            if (squareElement) {
+            const squareElement = getSquareElement(move);
+            const pieceAtSquare = findPieceAtPosition(move);
+    
+            // Check if the square is valid and either empty or occupied by an opponent's piece
+            if (squareElement && (!pieceAtSquare || pieceAtSquare.color !== this.color)) {
                 squareElement.classList.add('highlighted-square');
             }
         });
-    }
+    }    
 
     removeHighlights() {
         const legalMoves = this.getLegalMoves();
@@ -298,33 +301,63 @@ getLegalMoves(currentPosition = this.position) {
 }
 }
 
-// King
 class King extends ChessPiece {
-constructor(color, icon, name, position, points) {
-    super(color, icon, name, position, points);
-}
-
-points = 100;
-
-getLegalMoves(currentPosition = this.position) {
-    const legalMoves = [];
-
-    const moves = [
-        { x: 1, y: 0 }, { x: 1, y: 1 },
-        { x: 0, y: 1 }, { x: -1, y: 1 },
-        { x: -1, y: 0 }, { x: -1, y: -1 },
-        { x: 0, y: -1 }, { x: 1, y: -1 }
-    ];
-
-    for (const move of moves) {
-        const newPosition = { x: currentPosition.x + move.x, y: currentPosition.y + move.y };
-        if (this.isMoveValid(newPosition, currentPosition)) {
-            legalMoves.push(newPosition);
-        }
+    constructor(color, icon, name, position, points) {
+        super(color, icon, name, position, points);
     }
 
-    return legalMoves;
-}
+    points = 100;
+
+    getLegalMoves(currentPosition = this.position) {
+        const legalMoves = [];
+
+        const moves = [
+            { x: 1, y: 0 }, { x: 1, y: 1 },
+            { x: 0, y: 1 }, { x: -1, y: 1 },
+            { x: -1, y: 0 }, { x: -1, y: -1 },
+            { x: 0, y: -1 }, { x: 1, y: -1 }
+        ];
+
+        for (const move of moves) {
+            const newPosition = { x: currentPosition.x + move.x, y: currentPosition.y + move.y };
+            if (this.isMoveValid(newPosition, currentPosition)) {
+                legalMoves.push(newPosition);
+            }
+        }
+
+        return legalMoves;
+    }
+
+    isMoveValid(targetSquare, currentPosition) {
+        // Check if the target square is a valid square
+        if (!this.isValidSquare(targetSquare)) {
+            return false;
+        }
+
+        // Check if the move is within the king's range
+        const deltaX = Math.abs(targetSquare.x - currentPosition.x);
+        const deltaY = Math.abs(targetSquare.y - currentPosition.y);
+        if (deltaX > 1 || deltaY > 1) {
+            return false;
+        }
+
+        // Check if the target square is not occupied by a piece of the same color
+        const pieceAtTarget = findPieceAtPosition(targetSquare);
+        if (pieceAtTarget && pieceAtTarget.color === this.color) {
+            return false;
+        }
+
+        // Check if the target square is attacked by an opponent's piece
+        const opponentPieces = opponent === 'white' ? whitePieces : blackPieces;
+        for (const opponentPiece of opponentPieces) {
+            const legalMoves = opponentPiece.getLegalMoves(currentPosition);
+            if (legalMoves.some(move => move.x === targetSquare.x && move.y === targetSquare.y)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
 
 
@@ -428,8 +461,7 @@ function updateChessboard() {
         }
     }
     
-let selectedPiece = null;
-             
+let selectedPiece = null;     
 
 function handleSquareClick(event) {
 console.log('handleSquareClick function called');
@@ -492,9 +524,6 @@ if (selectedPiece) {
 // Log statements to check highlighted squares
 const highlightedSquares = document.querySelectorAll('.highlighted-square');
 console.log('Highlighted Squares:', highlightedSquares);
-highlightedSquares.forEach(square => {
-    console.log('Highlighted Square Coordinates:', square.getAttribute('data-col'), square.parentElement.getAttribute('data-row'));
-});
 }
  
 // Move piece 
@@ -681,7 +710,7 @@ return !isCheck; // If the move puts the king out of check, it's a valid move
 function getCurrentPlayerKing() {
 const currentPlayerPieces = currentPlayer === 'white' ? whitePieces : blackPieces;
 return currentPlayerPieces.find(piece => piece instanceof King);
-}
+};
 
 function isMoveAllowed(piece, targetSquare) {
 const currentPlayerKing = getCurrentPlayerKing();
@@ -707,4 +736,29 @@ if (isKingInCheck(currentPlayerKing, opponentPieces)) {
 }
 
 return true;
+}
+
+// Function to check if a piece is defending the king
+function isDefendingPiece(piece, targetSquare) {
+    const currentPlayerKing = getCurrentPlayerKing();
+    const opponentPieces = opponent === 'white' ? whitePieces : blackPieces;
+
+    // Get the position of the current player's king
+    const kingPosition = currentPlayerKing.position;
+
+    // Check if the piece can block or capture an attacking piece
+    for (const opponentPiece of opponentPieces) {
+        const legalMoves = opponentPiece.getLegalMoves();
+
+        // Check if the opponent's piece can attack the king
+        if (legalMoves.some(move => move.x === kingPosition.x && move.y === kingPosition.y)) {
+            // Check if the current piece can block the attack or capture the attacker
+            const pieceMoves = piece.getLegalMoves();
+            if (pieceMoves.some(move => move.x === targetSquare.x && move.y === targetSquare.y)) {
+                return true; // The piece can defend the king
+            }
+        }
+    }
+
+    return false; // The piece cannot defend the king
 }
