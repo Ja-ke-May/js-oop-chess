@@ -428,9 +428,9 @@ function updateChessboard() {
                 }
             }
         }
-    }
+    }  
     
-let selectedPiece = null;     
+    let selectedPiece = null; 
 
 function handleSquareClick(event) {
 console.log('handleSquareClick function called');
@@ -565,6 +565,7 @@ function movePiece(piece, targetSquare) {
             updateChessboard();
             switchPlayer();
         }
+        let selectedPiece = null; 
     }                
     
 // Get piece        
