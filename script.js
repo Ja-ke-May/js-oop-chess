@@ -565,7 +565,7 @@ function movePiece(piece, targetSquare) {
             updateChessboard();
             switchPlayer();
         }
-        let selectedPiece = null; 
+        
     }                
     
 // Get piece        
