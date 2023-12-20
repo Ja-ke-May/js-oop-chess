@@ -14,8 +14,8 @@ class ChessPiece {
     }
 
     isValidSquare(square) {
-        const validHorizontal = square.x >= 0 && square.x < 8;
-        const validVertical = square.y >= 0 && square.y < 8;
+        const validHorizontal = square.x >= 0 && square.x <= 7;
+        const validVertical = square.y >= 0 && square.y <= 7;
         return validHorizontal && validVertical;
     }
 
@@ -133,7 +133,7 @@ class Rook extends ChessPiece {
         }
 
         // Horizontal moves
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i <= 7; i++) {
             if (i !== currentPosition.x) {
                 const move = { x: i, y: currentPosition.y };
                 if (this.isMoveValid(move, currentPosition)) {
@@ -143,7 +143,7 @@ class Rook extends ChessPiece {
         }
 
         // Vertical moves
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i <= 7; i++) {
             if (i !== currentPosition.y) {
                 const move = { x: currentPosition.x, y: i };
                 if (this.isMoveValid(move, currentPosition)) {
@@ -243,7 +243,7 @@ getLegalMoves(currentPosition = this.position) {
 
 
     // Diagonal moves
-    for (let i = 1; i < 8; i++) {
+    for (let i = 0; i <= 7; i++) {
         const moves = [
             { x: i, y: i },
             { x: i, y: -i },
@@ -279,7 +279,7 @@ getLegalMoves(currentPosition = this.position) {
     const legalMoves = [];
 
     // Horizontal and Vertical moves
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i <= 7; i++) {
         if (i !== currentPosition.x) {
             legalMoves.push({ x: i, y: currentPosition.y });
         }
@@ -290,7 +290,7 @@ getLegalMoves(currentPosition = this.position) {
     }
 
     // Diagonal moves
-    for (let i = 1; i < 8; i++) {
+    for (let i = 0; i <= 7; i++) {
         legalMoves.push({ x: currentPosition.x + i, y: currentPosition.y + i });
         legalMoves.push({ x: currentPosition.x + i, y: currentPosition.y - i });
         legalMoves.push({ x: currentPosition.x - i, y: currentPosition.y + i });
@@ -466,10 +466,18 @@ if (selectedPiece) {
         movePiece(selectedPiece, { x: col, y: row }); // Pass the targetSquare
         selectedPiece = null;
 
-        // After the move is made
-        if (isKingInCheck(getCurrentPlayerKing(), opponent === 'white' ? whitePieces : blackPieces)) {
-            alert('Check!'); // Alert if the current player's king is in check
+        // After move is made
+    if (isKingInCheck(getCurrentPlayerKing(), opponent === 'white' ? whitePieces : blackPieces)) {
+        alert('Check!'); // Alert if the current player's king is in check
+
+        // Check for Checkmate
+        if (isCheckmate(currentPlayer === 'white' ? whitePieces : blackPieces, opponent === 'white' ? whitePieces : blackPieces)) {
+            alert('Checkmate! Game Over.');
+
+            // Reset page after the alert is dismissed
+            window.location.reload();
         }
+    }
     } else {
         // Clicked on an invalid square
         console.log('Invalid Move Selected');
@@ -707,22 +715,72 @@ function isDefendingPiece(piece, targetSquare) {
     const currentPlayerKing = getCurrentPlayerKing();
     const opponentPieces = opponent === 'white' ? whitePieces : blackPieces;
 
-    // Get the position of the current player's king
+    // Get position of the current player's king
     const kingPosition = currentPlayerKing.position;
 
-    // Check if the piece can block or capture an attacking piece
+    // Check if the piece can block or capture attacking piece
     for (const opponentPiece of opponentPieces) {
         const legalMoves = opponentPiece.getLegalMoves();
 
         // Check if the opponent's piece can attack the king
         if (legalMoves.some(move => move.x === kingPosition.x && move.y === kingPosition.y)) {
-            // Check if the current piece can block the attack or capture the attacker
+            // Check if the current piece can block attack or capture attacker
             const pieceMoves = piece.getLegalMoves();
             if (pieceMoves.some(move => move.x === targetSquare.x && move.y === targetSquare.y)) {
-                return true; // The piece can defend the king
+                return true; // Piece can defend the king
             }
         }
     }
 
     return false; // The piece cannot defend the king
+}
+
+function isCheckmate(playerPieces, opponentPieces) {
+    const currentPlayerKing = playerPieces.find(piece => piece instanceof King);
+    const kingPosition = currentPlayerKing.position;
+
+    console.log('Current Player King Position:', kingPosition);
+
+    // Check if the king in check
+    const isKingInCheck = opponentPieces.some(opponentPiece => {
+        const legalMoves = opponentPiece.getLegalMoves();
+        return legalMoves.some(move => move.x === kingPosition.x && move.y === kingPosition.y);
+    });
+
+    console.log('Is King in Check:', isKingInCheck);
+
+    // If king is not in check
+    if (!isKingInCheck) {
+        console.log('King is not in check.');
+        return false;
+    }
+
+    // Check if the king can move to any square to get out of check
+    for (let x = kingPosition.x - 1; x <= kingPosition.x + 1; x++) {
+        for (let y = kingPosition.y - 1; y <= kingPosition.y + 1; y++) {
+            const potentialMove = { x, y };
+
+            // Ensure the potential move is within board bounds and not occupied by own piece
+            if (currentPlayerKing.isValidSquare(potentialMove) && 
+                !playerPieces.some(piece => piece.position.x === potentialMove.x && piece.position.y === potentialMove.y)) {
+
+                // Check if making this move takes king out of check
+                const isKingSafeAfterMove = !opponentPieces.some(opponentPiece => {
+                    const legalMoves = opponentPiece.getLegalMoves();
+                    return legalMoves.some(move => move.x === potentialMove.x && move.y === potentialMove.y);
+                });
+
+                console.log(`Potential move (${x},${y}): King Safe After Move - ${isKingSafeAfterMove}`);
+
+                if (isKingSafeAfterMove) {
+                    console.log('King can escape check with move:', potentialMove);
+                    return false; // King can escape check, so no checkmate
+                }
+            }
+        }
+    }
+
+    // If no valid moves can get the king out of check, it's checkmate
+    console.log('King is in checkmate.');
+    return true;
 }
